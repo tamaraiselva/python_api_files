@@ -243,6 +243,6 @@ Check the following:
 
 If you continue to have issues, consider using the SQLite option instead.
 
-## working Demo Drivr Link
+## Working Demo Drive Link
 
-![working demo](https://drive.google.com/drive/folders/1AYOyvsuXU4CCDKBw4zWrgEyVgl1oR82k?usp=sharing)
+https://drive.google.com/drive/folders/1AYOyvsuXU4CCDKBw4zWrgEyVgl1oR82k?usp=sharing
