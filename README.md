@@ -72,7 +72,7 @@ This option uses SQLite, which is a file-based database that doesn't require any
 1. Clone the repository:
 
    ```bash
-   git clone https://github.com/tamaraiselva/python_api_files
+   git clone <repository-url>
    cd python_api_files
    ```
 

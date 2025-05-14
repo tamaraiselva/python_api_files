@@ -4,14 +4,11 @@ from typing import List, Dict, Optional, Any, Union
 import pandas as pd
 from sqlalchemy import create_engine
 
-# Database configuration
 TABLE_NAME = "uploaded_data"
 
-# SQLite configuration
 SQLITE_DB_FILE = "csv_data.db"
-USE_SQLITE = True  # Set to True to use SQLite, False to use PostgreSQL
+USE_SQLITE = True
 
-# PostgreSQL configuration (only used if USE_SQLITE is False)
 try:
     import psycopg2
     from psycopg2.extras import RealDictCursor
@@ -19,22 +16,18 @@ try:
 except ImportError:
     PSYCOPG2_AVAILABLE = False
 
-# PostgreSQL connection parameters (only used if USE_SQLITE is False)
-DB_HOST = "localhost"  # When running outside Kubernetes
-DB_PORT = "5433"       # Port forwarded from Kubernetes
+DB_HOST = "localhost"
+DB_PORT = "5433"
 DB_NAME = "database"
 DB_USER = "postgres"
 DB_PASSWORD = "Password"
 
-# For Kubernetes internal connection (used when running inside the cluster)
 K8S_DB_HOST = "postgresql.default.svc.cluster.local"
 K8S_DB_PORT = "5432"
 
-# Determine if running inside Kubernetes by checking for the service host env var
 IN_KUBERNETES = os.environ.get('KUBERNETES_SERVICE_HOST') is not None
 
 class DatabaseError(Exception):
-    """Custom exception for database operations."""
     pass
 
 def get_connection_string() -> str:
@@ -63,16 +56,13 @@ def get_db_connection():
     """
     try:
         if USE_SQLITE:
-            # Use SQLite
             conn = sqlite3.connect(SQLITE_DB_FILE)
             conn.row_factory = sqlite3.Row
             return conn
         else:
-            # Use PostgreSQL
             if not PSYCOPG2_AVAILABLE:
                 raise ImportError("psycopg2 is not installed. Install it with 'pip install psycopg2-binary'")
 
-            # Determine connection parameters based on environment
             if IN_KUBERNETES:
                 host = K8S_DB_HOST
                 port = K8S_DB_PORT
@@ -109,10 +99,8 @@ def initialize_db() -> None:
         cursor = conn.cursor()
 
         if USE_SQLITE:
-            # SQLite version
             cursor.execute(f"CREATE TABLE IF NOT EXISTS {TABLE_NAME} (id INTEGER PRIMARY KEY)")
         else:
-            # PostgreSQL version
             cursor.execute(f"CREATE TABLE IF NOT EXISTS {TABLE_NAME} (id SERIAL PRIMARY KEY)")
 
         conn.commit()
@@ -143,40 +131,30 @@ def insert_csv_data(df: pd.DataFrame) -> None:
         conn = get_db_connection()
         cursor = conn.cursor()
 
-        # First, ensure the table exists with the correct schema
         cursor.execute(f"DROP TABLE IF EXISTS {TABLE_NAME}")
 
         if USE_SQLITE:
-            # SQLite version
-            # Create the table with an ID column
             create_table_query = f"CREATE TABLE {TABLE_NAME} (id INTEGER PRIMARY KEY"
 
-            # Add columns for each column in the DataFrame
             for column in df.columns:
                 create_table_query += f", {column} TEXT"
 
             create_table_query += ")"
             cursor.execute(create_table_query)
 
-            # Insert data
             for _, row in df.iterrows():
                 columns = ", ".join(row.index)
                 placeholders = ", ".join(["?"] * len(row))
                 insert_query = f"INSERT INTO {TABLE_NAME} ({columns}) VALUES ({placeholders})"
                 cursor.execute(insert_query, list(row))
         else:
-            # PostgreSQL version
-            # Create the table with an ID column
             create_table_query = f"CREATE TABLE {TABLE_NAME} (id SERIAL PRIMARY KEY"
 
-            # Add columns for each column in the DataFrame
             for column in df.columns:
                 create_table_query += f", {column} TEXT"
 
             create_table_query += ")"
             cursor.execute(create_table_query)
-
-            # Insert data
             for _, row in df.iterrows():
                 columns = ", ".join(row.index)
                 placeholders = ", ".join(["%s"] * len(row))
@@ -221,13 +199,9 @@ def fetch_records(column: Optional[str] = None, value: Optional[str] = None) -> 
         cursor = conn.cursor()
 
         if USE_SQLITE:
-            # SQLite version
-            # Check if table exists
             cursor.execute(f"SELECT name FROM sqlite_master WHERE type='table' AND name='{TABLE_NAME}'")
             if not cursor.fetchone():
                 return []
-
-            # Get table column names for validation
             if column:
                 cursor.execute(f"PRAGMA table_info({TABLE_NAME})")
                 columns = [col[1] for col in cursor.fetchall()]
@@ -244,8 +218,6 @@ def fetch_records(column: Optional[str] = None, value: Optional[str] = None) -> 
             records = cursor.fetchall()
             return [dict(record) for record in records]
         else:
-            # PostgreSQL version
-            # Get table column names for validation
             if column:
                 cursor.execute(f"SELECT column_name FROM information_schema.columns WHERE table_name = '{TABLE_NAME}'")
                 columns = [col['column_name'] for col in cursor.fetchall()]
@@ -294,8 +266,6 @@ def get_record_by_id(record_id: int) -> Optional[Dict[str, Any]]:
         cursor = conn.cursor()
 
         if USE_SQLITE:
-            # SQLite version
-            # First check if the table exists
             cursor.execute(f"SELECT name FROM sqlite_master WHERE type='table' AND name='{TABLE_NAME}'")
             if not cursor.fetchone():
                 return None
@@ -305,8 +275,6 @@ def get_record_by_id(record_id: int) -> Optional[Dict[str, Any]]:
             record = cursor.fetchone()
             return dict(record) if record else None
         else:
-            # PostgreSQL version
-            # First check if the table exists
             cursor.execute(f"SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = '{TABLE_NAME}')")
             table_exists = cursor.fetchone()['exists']
             if not table_exists:
@@ -459,11 +427,9 @@ def delete_record(record_id: int) -> bool:
         cursor = conn.cursor()
 
         if USE_SQLITE:
-            # SQLite version
             query = f"DELETE FROM {TABLE_NAME} WHERE id = ?"
             cursor.execute(query, (record_id,))
         else:
-            # PostgreSQL version
             query = f"DELETE FROM {TABLE_NAME} WHERE id = %s"
             cursor.execute(query, (record_id,))
 

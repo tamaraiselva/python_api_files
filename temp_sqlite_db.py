@@ -11,7 +11,6 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# SQLite database file
 DB_FILE = "csv_data.db"
 TABLE_NAME = "uploaded_data"
 
@@ -31,20 +30,16 @@ def insert_csv_data(df):
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
 
-    # Drop the table if it exists
     cursor.execute(f"DROP TABLE IF EXISTS {TABLE_NAME}")
 
-    # Create the table with an ID column
     create_table_query = f"CREATE TABLE {TABLE_NAME} (id INTEGER PRIMARY KEY"
 
-    # Add columns for each column in the DataFrame
     for column in df.columns:
         create_table_query += f", {column} TEXT"
 
     create_table_query += ")"
     cursor.execute(create_table_query)
 
-    # Insert data
     for _, row in df.iterrows():
         columns = ", ".join(row.index)
         placeholders = ", ".join(["?"] * len(row))
@@ -78,11 +73,9 @@ def process_csv(file_content):
         raise HTTPException(status_code=400, detail="Empty file content.")
 
     try:
-        # Try to decode as UTF-8
         csv_text = file_content.decode("utf-8")
     except UnicodeDecodeError:
         try:
-            # Fallback to Latin-1 encoding
             csv_text = file_content.decode("latin-1")
         except Exception as e:
             raise HTTPException(status_code=400, detail=f"File encoding not supported: {str(e)}")
@@ -90,11 +83,9 @@ def process_csv(file_content):
     try:
         df = pd.read_csv(io.StringIO(csv_text))
 
-        # Validate DataFrame
         if df.empty:
             raise HTTPException(status_code=400, detail="CSV file is empty.")
 
-        # Check for minimum required columns (can be customized)
         if len(df.columns) < 1:
             raise HTTPException(status_code=400, detail="CSV must contain at least one column.")
 
@@ -117,7 +108,6 @@ async def startup_event():
 @app.post("/upload/")
 async def upload_csv(file: UploadFile = File(...)):
     """Upload and process a CSV file."""
-    # Validate file type
     if not file.filename.endswith(('.csv', '.CSV')):
         raise HTTPException(status_code=400, detail="Only CSV files are allowed.")
 
@@ -138,7 +128,6 @@ async def get_records(
 ):
     """Fetch records from the database."""
     try:
-        # Validate that if column is provided, value must also be provided
         if column is not None and value is None:
             raise HTTPException(status_code=400, detail="If column is provided, value must also be provided.")
 

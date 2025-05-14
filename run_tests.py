@@ -12,7 +12,6 @@ def run_tests(with_coverage=True):
     try:
         if with_coverage:
             try:
-                # Try running tests with coverage report
                 print("Running tests with coverage report...\n")
                 result = subprocess.run(
                     ["pytest", "-v", "--cov=.", "--cov-report=term", "--cov-report=html"],
@@ -20,7 +19,6 @@ def run_tests(with_coverage=True):
                     text=True
                 )
 
-                # If coverage fails, fall back to regular tests
                 if result.returncode != 0 and "unrecognized arguments: --cov" in result.stderr:
                     print("Coverage reporting not available. Falling back to standard tests...\n")
                     return run_tests(with_coverage=False)
@@ -29,7 +27,6 @@ def run_tests(with_coverage=True):
                 print("Falling back to standard tests...\n")
                 return run_tests(with_coverage=False)
         else:
-            # Run tests without coverage report
             print("Running tests without coverage report...\n")
             result = subprocess.run(
                 ["pytest", "-v"],

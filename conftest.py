@@ -5,7 +5,6 @@ from main import app
 import psycopg2
 from database import TABLE_NAME
 
-# Test database connection parameters
 TEST_DB_NAME = "database"
 TEST_DB_USER = "postgres"
 TEST_DB_PASSWORD = "Password"
@@ -57,10 +56,9 @@ def test_database():
     - Sets up a clean test database
     - Cleans up after tests
     """
-    # Setup test database
+   
     conn = None
     try:
-        # Connect to the test database
         conn = psycopg2.connect(
             host=TEST_DB_HOST,
             port=TEST_DB_PORT,
@@ -70,8 +68,6 @@ def test_database():
         )
         conn.autocommit = True
         cursor = conn.cursor()
-
-        # Drop the test table if it exists
         cursor.execute(f"DROP TABLE IF EXISTS {TABLE_NAME}")
         conn.commit()
     except Exception as e:
@@ -79,8 +75,6 @@ def test_database():
     finally:
         if conn:
             conn.close()
-
-    # Return connection parameters for tests
     yield {
         "host": TEST_DB_HOST,
         "port": TEST_DB_PORT,
@@ -89,7 +83,6 @@ def test_database():
         "password": TEST_DB_PASSWORD
     }
 
-    # Cleanup after tests
     try:
         conn = psycopg2.connect(
             host=TEST_DB_HOST,

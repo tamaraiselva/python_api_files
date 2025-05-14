@@ -8,10 +8,7 @@ from database import (
 from utils import process_csv
 from pydantic import BaseModel, Field
 
-# Define Pydantic models for request validation
 class RecordUpdate(BaseModel):
-    """Model for record update requests."""
-    # Define fields dynamically - will accept any field
     class Config:
         extra = "allow"
 
@@ -21,14 +18,12 @@ app = FastAPI(
     version="1.1.0"
 )
 
-# Initialize DB on startup
 @app.on_event("startup")
 async def startup_event():
     """Initialize the database on application startup."""
     try:
         initialize_db()
     except DatabaseError as e:
-        # Log the error but allow the application to start
         print(f"Database initialization error: {str(e)}")
 
 @app.post("/upload/",
@@ -47,7 +42,6 @@ async def upload_csv(file: UploadFile = File(...)) -> Dict[str, str]:
     Raises:
         HTTPException: If file validation or processing fails.
     """
-    # Validate file type
     if not file.filename.endswith(('.csv', '.CSV')):
         raise HTTPException(status_code=400, detail="Only CSV files are allowed.")
 
@@ -57,16 +51,12 @@ async def upload_csv(file: UploadFile = File(...)) -> Dict[str, str]:
         insert_csv_data(df)
         return {"message": "CSV uploaded and data stored successfully", "filename": file.filename}
     except HTTPException as e:
-        # Re-raise HTTP exceptions from process_csv
         raise e
     except DatabaseError as e:
-        # Handle database errors
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
     except ValueError as e:
-        # Handle validation errors
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        # Handle unexpected errors
         raise HTTPException(status_code=500, detail=f"An unexpected error occurred: {str(e)}")
 
 @app.get("/records/",
@@ -90,7 +80,6 @@ async def get_records(
         HTTPException: If fetching records fails.
     """
     try:
-        # Validate that if column is provided, value must also be provided
         if column is not None and value is None:
             raise HTTPException(status_code=400, detail="If column is provided, value must also be provided.")
 
@@ -160,7 +149,6 @@ async def update_record_endpoint(
         HTTPException: If the record is not found or if updating fails.
     """
     try:
-        # Convert Pydantic model to dict
         data = record_data.model_dump()
         success = update_record(record_id, data)
 

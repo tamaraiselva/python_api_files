@@ -12,7 +12,6 @@ from utils import process_csv
 
 client = TestClient(app)
 
-# Test database connection parameters
 TEST_DB_NAME = "database"
 TEST_DB_USER = "postgres"
 TEST_DB_PASSWORD = "Password"
@@ -26,7 +25,6 @@ def setup_and_teardown():
     - Sets up a clean test database
     - Cleans up after tests
     """
-    # Setup test database
     conn = None
     try:
         # Connect to the test database
@@ -134,9 +132,6 @@ def test_upload_csv_with_missing_values():
 
     assert len(records) == 3
     assert records[0]["name"] == "John"
-    # In PostgreSQL, empty or NULL values might be represented differently
-    # Just check that the records exist with the correct non-empty values
-    # PostgreSQL might convert numeric values to different formats
     assert records[0]["age"] in ("30", "30.0")
     assert records[1]["name"] == "Jane"
     assert "email" in records[1]
@@ -150,10 +145,7 @@ def test_get_records_with_invalid_filter_combination():
     csv_content = b"name,age\nJohn,30\nJane,25"
     files = {"file": ("test.csv", csv_content, "text/csv")}
     client.post("/upload/", files=files)
-
-    # Test with column parameter but no value
     response = client.get("/records/?column=name")
-    # Update the test to match the actual behavior
     assert response.status_code == 500
     assert "detail" in response.json()
 
@@ -194,18 +186,12 @@ def test_upload_csv_with_sql_injection():
     files = {"file": ("injection.csv", csv_content, "text/csv")}
 
     response = client.post("/upload/", files=files)
-
-    # For PostgreSQL, we might get a 500 error due to the special characters
-    # or it might succeed if the database layer properly escapes the input
     assert response.status_code in (200, 500)
 
     if response.status_code == 200:
-        # Verify the data was stored correctly and the table still exists
         get_response = client.get("/records/")
         assert get_response.status_code == 200
         records = get_response.json()["records"]
 
-        # The table should still exist with our data
         assert len(records) == 2
-        # The SQL injection attempt should be stored as a literal string
         assert any(record["name"] == "Robert'); DROP TABLE uploaded_data; --" for record in records)

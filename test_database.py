@@ -8,7 +8,6 @@ from database import (
     TABLE_NAME, DatabaseError, get_db_connection
 )
 
-# Test database connection parameters
 TEST_DB_NAME = "database"
 TEST_DB_USER = "postgres"
 TEST_DB_PASSWORD = "Password"
@@ -17,13 +16,9 @@ TEST_DB_PORT = "5433"
 
 @pytest.fixture(autouse=True)
 def setup_and_teardown():
-    # Save original connection function
     original_get_connection = get_db_connection
 
-    # Setup test database
-    conn = None
     try:
-        # Connect to the test database
         conn = psycopg2.connect(
             host=TEST_DB_HOST,
             port=TEST_DB_PORT,
@@ -34,7 +29,6 @@ def setup_and_teardown():
         conn.autocommit = True
         cursor = conn.cursor()
 
-        # Drop the test table if it exists
         cursor.execute(f"DROP TABLE IF EXISTS {TABLE_NAME}")
         conn.commit()
     except Exception as e:
@@ -45,7 +39,6 @@ def setup_and_teardown():
 
     yield
 
-    # Cleanup after tests
     try:
         conn = psycopg2.connect(
             host=TEST_DB_HOST,
@@ -67,7 +60,6 @@ def setup_and_teardown():
 def test_initialize_db():
     initialize_db()
 
-    # Verify the table was created
     conn = psycopg2.connect(
         host=TEST_DB_HOST,
         port=TEST_DB_PORT,
@@ -95,10 +87,10 @@ def test_insert_and_fetch_records():
     records = fetch_records()
 
     assert len(records) == 2
-    assert records[0]['name'] == 'John'
-    assert records[0]['age'] == '30'  # Age is stored as a string in PostgreSQL
+    assert records[0]['name'] == 'Yegna Subramanian Jambunath'
+    assert records[0]['age'] == '30'
     assert records[1]['name'] == 'Jane'
-    assert records[1]['age'] == '25'  # Age is stored as a string in PostgreSQL
+    assert records[1]['age'] == '25'
 
 def test_fetch_records_with_filter():
     initialize_db()
@@ -114,7 +106,7 @@ def test_fetch_records_with_filter():
 
     assert len(records) == 1
     assert records[0]['name'] == 'John'
-    assert records[0]['age'] == '30'  # Age is stored as a string in PostgreSQL
+    assert records[0]['age'] == '30'
 
 def test_insert_empty_dataframe():
     initialize_db()
@@ -134,7 +126,6 @@ def test_fetch_records_invalid_column():
     df = pd.DataFrame(data)
     insert_csv_data(df)
 
-    # Fetch records with invalid column should raise ValueError
     with pytest.raises(ValueError) as excinfo:
         fetch_records('invalid_column', 'John')
 
@@ -142,14 +133,11 @@ def test_fetch_records_invalid_column():
 
 def test_database_connection_error(monkeypatch):
     """Test database connection error handling."""
-    # Mock psycopg2.connect to raise an error
     def mock_connect(*args, **kwargs):
         raise psycopg2.Error("Mock connection error")
 
-    # Apply the monkeypatch
     monkeypatch.setattr(psycopg2, "connect", mock_connect)
 
-    # Initialize the database should raise DatabaseError
     with pytest.raises(DatabaseError) as excinfo:
         initialize_db()
 
