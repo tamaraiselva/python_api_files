@@ -1,0 +1,38 @@
+## PostgreSQL values for Helm chart
+## Based on Bitnami PostgreSQL chart
+
+## Authentication parameters
+auth:
+  enablePostgresUser: true
+  postgresPassword: "Password"
+  username: "postgres"
+  password: "Password"
+  database: "database"
+
+## PostgreSQL Primary parameters
+primary:
+  ## Number of replicas
+  replicaCount: 1
+  
+  ## Pod resources
+  resources:
+    requests:
+      memory: 256Mi
+      cpu: 250m
+    limits:
+      memory: 512Mi
+      cpu: 500m
+  
+  ## Persistence configuration
+  persistence:
+    enabled: true
+    size: 1Gi
+    
+  ## Service configuration
+  service:
+    type: ClusterIP
+    port: 5432
+
+## Enable metrics exporter
+metrics:
+  enabled: false

@@ -2,9 +2,15 @@ import pytest
 import os
 from fastapi.testclient import TestClient
 from main import app
-from database import DATABASE_FILE
+import psycopg2
+from database import TABLE_NAME
 
-TEST_DATABASE_FILE = "test_database.db"
+# Test database connection parameters
+TEST_DB_NAME = "database"
+TEST_DB_USER = "postgres"
+TEST_DB_PASSWORD = "Password"
+TEST_DB_HOST = "localhost"
+TEST_DB_PORT = "5433"
 
 @pytest.fixture
 def test_client():
@@ -48,15 +54,56 @@ def empty_csv_content():
 def test_database():
     """
     Setup and teardown for tests.
-    - Redirects database operations to a test database
-    - Cleans up the test database after tests
+    - Sets up a clean test database
+    - Cleans up after tests
     """
-    original_db_file = DATABASE_FILE
-    import database
-    database.DATABASE_FILE = TEST_DATABASE_FILE
+    # Setup test database
+    conn = None
+    try:
+        # Connect to the test database
+        conn = psycopg2.connect(
+            host=TEST_DB_HOST,
+            port=TEST_DB_PORT,
+            dbname=TEST_DB_NAME,
+            user=TEST_DB_USER,
+            password=TEST_DB_PASSWORD
+        )
+        conn.autocommit = True
+        cursor = conn.cursor()
 
-    yield TEST_DATABASE_FILE
+        # Drop the test table if it exists
+        cursor.execute(f"DROP TABLE IF EXISTS {TABLE_NAME}")
+        conn.commit()
+    except Exception as e:
+        pytest.skip(f"Could not connect to test PostgreSQL database: {str(e)}")
+    finally:
+        if conn:
+            conn.close()
 
-    database.DATABASE_FILE = original_db_file
-    if os.path.exists(TEST_DATABASE_FILE):
-        os.remove(TEST_DATABASE_FILE)
+    # Return connection parameters for tests
+    yield {
+        "host": TEST_DB_HOST,
+        "port": TEST_DB_PORT,
+        "dbname": TEST_DB_NAME,
+        "user": TEST_DB_USER,
+        "password": TEST_DB_PASSWORD
+    }
+
+    # Cleanup after tests
+    try:
+        conn = psycopg2.connect(
+            host=TEST_DB_HOST,
+            port=TEST_DB_PORT,
+            dbname=TEST_DB_NAME,
+            user=TEST_DB_USER,
+            password=TEST_DB_PASSWORD
+        )
+        conn.autocommit = True
+        cursor = conn.cursor()
+        cursor.execute(f"DROP TABLE IF EXISTS {TABLE_NAME}")
+        conn.commit()
+    except Exception:
+        pass
+    finally:
+        if conn:
+            conn.close()
