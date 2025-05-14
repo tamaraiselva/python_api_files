@@ -133,7 +133,7 @@ Example:
 
 ```bash
 curl -X 'GET' 'http://127.0.0.1:8000/records/'
-curl -X 'GET' 'http://127.0.0.1:8000/records/?column=name&value=John'
+curl -X 'GET' 'http://127.0.0.1:8000/records/?column=name&value=Yegna Subramanian Jambunath'
 ```
 
 ### Get Record by ID
