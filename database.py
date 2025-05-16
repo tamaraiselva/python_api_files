@@ -3,11 +3,13 @@ import sqlite3
 from typing import List, Dict, Optional, Any, Union
 import pandas as pd
 from sqlalchemy import create_engine
+import psycopg2
+from psycopg2.extras import RealDictCursor
 
 TABLE_NAME = "uploaded_data"
 
 SQLITE_DB_FILE = "csv_data.db"
-USE_SQLITE = True
+USE_SQLITE = False  # Set to False to use PostgreSQL
 
 try:
     import psycopg2
@@ -484,3 +486,27 @@ def delete_all_records() -> int:
     finally:
         if conn:
             conn.close()
+
+import psycopg2
+from database import DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASSWORD
+
+print("Testing PostgreSQL connection...")
+
+try:
+    conn = psycopg2.connect(
+        host=DB_HOST,
+        port=DB_PORT,
+        dbname=DB_NAME,
+        user=DB_USER,
+        password=DB_PASSWORD
+    )
+    print("Connection successful!")
+
+    cursor = conn.cursor()
+    cursor.execute("SELECT version();")
+    version = cursor.fetchone()
+    print(f"PostgreSQL version: {version[0]}")
+
+    conn.close()
+except Exception as e:
+    print(f"Connection failed: {str(e)}")
