@@ -4,7 +4,5 @@ uvicorn
 python-multipart
 pytest
 pytest-asyncio
-pytest-cov
 httpx
 psycopg2-binary
-sqlalchemy

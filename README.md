@@ -1,79 +1,45 @@
-# FastAPI CSV Data API
+# Python API Project
 
-A FastAPI application for uploading and retrieving CSV data.
+A FastAPI-based REST API for uploading and querying CSV data with PostgreSQL storage.
 
-## Features
+## Overview
 
-- Upload CSV files and store data in PostgreSQL or SQLite database
-- Retrieve records with optional filtering
-- Comprehensive error handling
-- Containerized with Docker
-- Automated testing with pytest
-- Kubernetes deployment support
+This project provides a full CRUD (Create, Read, Update, Delete) API for:
+
+- Uploading CSV files
+- Storing the data in a PostgreSQL database running in Kubernetes (minikube)
+- Creating, reading, updating, and deleting individual records
+- Retrieving records with optional filtering
+
+## Project Structure
+
+```bash
+.
+├── database.py         # Database connection and operations
+├── main.py             # FastAPI application and endpoints
+├── utils.py            # Utility functions for processing data
+├── test_database.py    # Unit tests for database.py
+├── test_main.py        # Unit tests for main.py
+├── requirements.txt    # Project dependencies
+├── Dockerfile          # Docker configuration
+└── README.md           # Project documentation
+```
 
 ## Installation
 
-### Database Options
+### Prerequisites
 
-This application supports two database options:
+- Python 3.9 or higher
+- pip (Python package installer)
+- PostgreSQL database (local or remote)
 
-1. **PostgreSQL** (running in Kubernetes) - The default option
-2. **SQLite** (local file-based database) - Simpler alternative that doesn't require Kubernetes
-
-### Option 1: PostgreSQL Setup (Requires Kubernetes)
-
-This option uses PostgreSQL running in Kubernetes. Follow these steps to set up PostgreSQL:
-
-1. Make sure Docker Desktop is running
-
-2. Make sure Minikube is running:
-
-   ```bash
-   minikube start
-   minikube status
-   ```
-
-3. Deploy PostgreSQL using Helm:
-
-   ```bash
-   helm repo add bitnami https://charts.bitnami.com/bitnami
-   helm repo update
-   helm install postgresql bitnami/postgresql -f postgres-values.yaml
-   ```
-
-4. Set up port forwarding to access PostgreSQL from your local machine:
-
-   ```bash
-   kubectl port-forward svc/postgresql 5433:5432
-   ```
-
-   This will make PostgreSQL accessible at `localhost:5433`.
-
-5. Run the application with PostgreSQL:
-
-   ```bash
-   python main.py
-   ```
-
-### Option 2: SQLite Setup (No Kubernetes Required)
-
-This option uses SQLite, which is a file-based database that doesn't require any additional setup:
-
-1. Run the SQLite version of the application:
-
-   ```bash
-   python temp_sqlite_db.py
-   ```
-
-   This will create a local SQLite database file (`csv_data.db`) in the current directory.
-
-### Local Development (Common Steps)
+### Setup
 
 1. Clone the repository:
 
    ```bash
    git clone <repository-url>
-   cd python_api_files
+   cd fastapi_app
    ```
 
 2. Install dependencies:
@@ -82,167 +48,353 @@ This option uses SQLite, which is a file-based database that doesn't require any
    pip install -r requirements.txt
    ```
 
-3. Choose either the PostgreSQL or SQLite option above.
+3. Configure PostgreSQL connection:
 
-   The API will be available at `http://localhost:8000` in both cases.
+   Set the following environment variables to connect to your PostgreSQL database:
+
+   ```bash
+   # Windows
+   set PG_HOST=localhost
+   set PG_PORT=5432
+   set PG_DATABASE=postgres
+   set PG_USER=postgres
+   set PG_PASSWORD=postgres
+
+   # Linux/Mac
+   export PG_HOST=localhost
+   export PG_PORT=5432
+   export PG_DATABASE=postgres
+   export PG_USER=postgres
+   export PG_PASSWORD=postgres
+   ```
+
+   Or you can use the default values in the code (localhost:5432, database: postgres, user: postgres, password: postgres).
+
+## Running the API
+
+Start the API server:
+
+```bash
+python main.py
+```
+
+The API will be available at `http://localhost:8000`.
 
 ### Using Docker
 
-1. Build the Docker image:
+You can also run the application using Docker:
+
+```bash
+# Build the Docker image
+docker build -t fastapi_app .
+
+# Run the container with PostgreSQL environment variables
+docker run -p 8000:8000 \
+  -e PG_HOST=host.docker.internal \
+  -e PG_PORT=5432 \
+  -e PG_DATABASE=postgres \
+  -e PG_USER=postgres \
+  -e PG_PASSWORD=postgres \
+  fastapi_app
+```
+
+Note: `host.docker.internal` is used to connect to the PostgreSQL server running on your host machine from inside the Docker container. If you're using a remote PostgreSQL server, replace it with the appropriate hostname or IP address.
+
+### Using with Kubernetes (minikube)
+
+To connect to a PostgreSQL database running in Kubernetes:
+
+1. Start your minikube cluster:
 
    ```bash
-   docker build -t fastapi_app .
+   minikube start
    ```
 
-2. Run the container:
+2. Deploy PostgreSQL to your cluster (if not already deployed).
+
+3. Expose the PostgreSQL service using port-forward:
 
    ```bash
-   docker run -p 8000:8000 fastapi_app
+   kubectl port-forward service/postgres 5432:5432
+   ```
+
+4. Run the application with the appropriate environment variables:
+
+   ```bash
+   # Windows PowerShell
+   $env:PG_HOST = "localhost"
+   $env:PG_PORT = "5432"
+   $env:PG_DATABASE = "postgres"
+   $env:PG_USER = "postgres"
+   $env:PG_PASSWORD = "your_password"
+   python main.py
    ```
 
 ## API Endpoints
 
 ### Upload CSV
 
-```bash
-POST /upload/
-```
-
 Upload a CSV file to store its data in the database.
 
-Example:
+- **URL**: `/upload/`
+- **Method**: `POST`
+- **Content-Type**: `multipart/form-data`
+- **Parameter**: `file` (CSV file)
+
+**Example Request**:
 
 ```bash
-curl -X 'POST' 'http://127.0.0.1:8000/upload/' -F 'file=@your_file.csv'
+curl -X POST -F "file=@data.csv" http://localhost:8000/upload/
+```
+
+**Example Response**:
+
+```json
+{
+  "message": "CSV uploaded and data stored successfully"
+}
 ```
 
 ### Get All Records
 
+Retrieve records from the database with optional filtering.
+
+- **URL**: `/records/`
+- **Method**: `GET`
+- **Query Parameters**:
+  - `column` (optional): Column name to filter by
+  - `value` (optional): Value to filter for
+
+**Example Request (all records)**:
+
 ```bash
-GET /records/
+curl http://localhost:8000/records/
 ```
 
-Retrieve all records from the database with optional filtering.
-
-Parameters:
-
-- `column` (optional): Column name to filter by
-- `value` (optional): Value to filter for
-
-Example:
+**Example Request (filtered records)**:
 
 ```bash
-curl -X 'GET' 'http://127.0.0.1:8000/records/'
-curl -X 'GET' 'http://127.0.0.1:8000/records/?column=name&value=Yegna Subramanian Jambunath'
+curl http://localhost:8000/records/?column=name&value=John
+```
+
+**Example Response**:
+
+```json
+{
+  "records": [
+    {
+      "name": "John",
+      "age": 30,
+      "city": "New York"
+    },
+    ...
+  ]
+}
 ```
 
 ### Get Record by ID
 
+Retrieve a single record by its ID.
+
+- **URL**: `/records/{id}`
+- **Method**: `GET`
+- **URL Parameters**:
+  - `id`: The ID of the record to retrieve
+
+**Example Request**:
+
 ```bash
-GET /records/{record_id}
+curl http://localhost:8000/records/1
 ```
 
-Retrieve a specific record by its ID.
+**Example Response**:
 
-Example:
+```json
+{
+  "record": {
+    "id": 1,
+    "name": "John",
+    "age": 30,
+    "city": "New York"
+  }
+}
+```
+
+### Create Record
+
+Create a new record in the database.
+
+- **URL**: `/records/`
+- **Method**: `POST`
+- **Content-Type**: `application/json`
+- **Body**: JSON object with record data
+
+**Example Request**:
 
 ```bash
-curl -X 'GET' 'http://127.0.0.1:8000/records/1'
+curl -X POST -H "Content-Type: application/json" -d '{"name": "Alice", "age": 28, "city": "Seattle"}' http://localhost:8000/records/
+```
+
+**Example Response**:
+
+```json
+{
+  "record": {
+    "id": 4,
+    "name": "Alice",
+    "age": 28,
+    "city": "Seattle"
+  },
+  "message": "Record created successfully"
+}
 ```
 
 ### Update Record
 
+Update an existing record by its ID.
+
+- **URL**: `/records/{id}`
+- **Method**: `PUT`
+- **Content-Type**: `application/json`
+- **URL Parameters**:
+  - `id`: The ID of the record to update
+- **Body**: JSON object with updated record data
+
+**Example Request**:
+
 ```bash
-PUT /records/{record_id}
+curl -X PUT -H "Content-Type: application/json" -d '{"name": "John", "age": 31, "city": "Boston"}' http://localhost:8000/records/1
 ```
 
-Update a specific record by its ID.
+**Example Response**:
 
-Example:
-
-```bash
-curl -X 'PUT' 'http://127.0.0.1:8000/records/1' \
-  -H 'Content-Type: application/json' \
-  -d '{"name": "Updated Name", "age": 35}'
+```json
+{
+  "record": {
+    "id": 1,
+    "name": "John",
+    "age": 31,
+    "city": "Boston"
+  },
+  "message": "Record updated successfully"
+}
 ```
 
 ### Delete Record
 
+Delete a record by its ID.
+
+- **URL**: `/records/{id}`
+- **Method**: `DELETE`
+- **URL Parameters**:
+  - `id`: The ID of the record to delete
+
+**Example Request**:
+
 ```bash
-DELETE /records/{record_id}
+curl -X DELETE http://localhost:8000/records/1
 ```
 
-Delete a specific record by its ID.
+**Example Response**:
 
-Example:
-
-```bash
-curl -X 'DELETE' 'http://127.0.0.1:8000/records/1'
-```
-
-### Delete All Records
-
-```bash
-DELETE /records/
-```
-
-Delete all records from the database.
-
-Example:
-
-```bash
-curl -X 'DELETE' 'http://127.0.0.1:8000/records/'
+```json
+{
+  "message": "Record with ID 1 deleted successfully"
+}
 ```
 
 ## Testing
 
-### Testing with PostgreSQL
+### Running Tests
 
-The default tests are configured to use PostgreSQL. Make sure PostgreSQL is running in Kubernetes and port-forwarded to localhost:5433 before running the tests.
-
-Run the tests with:
+Run all tests:
 
 ```bash
-python run_tests.py
+pytest
 ```
 
-This will:
-
-1. Run all tests with coverage reporting
-2. Build the Docker image if tests pass
-
-To run tests manually:
+Run tests with verbose output:
 
 ```bash
 pytest -v
 ```
 
-### Testing with SQLite
+Run specific test files:
 
-The SQLite version doesn't have dedicated tests yet. You can manually test it by:
-
-1. Running the application: `python temp_sqlite_db.py`
-2. Using curl or a browser to interact with the API endpoints
-
-## Troubleshooting
-
-### PostgreSQL Connection Issues
-
-If you see errors like:
-
-```text
-Database error: Failed to connect to database: connection to server at "localhost" (::1), port 5433 failed: Connection refused
+```bash
+pytest test_database.py
+pytest test_main.py
 ```
 
-Check the following:
+### Test Coverage
 
-1. Make sure Docker Desktop is running
-2. Make sure Minikube is running (`minikube status`, `minikube start` if needed)
-3. Make sure PostgreSQL is deployed in Kubernetes (`kubectl get pods`)
-4. Make sure port forwarding is active (`kubectl port-forward svc/postgresql 5433:5432`)
+Generate a test coverage report:
 
-If you continue to have issues, consider using the SQLite option instead.
+```bash
+pytest --cov=.
+```
 
-## Working Demo Drive Link
+Current coverage:
 
-https://drive.google.com/drive/folders/1AYOyvsuXU4CCDKBw4zWrgEyVgl1oR82k?usp=sharing
+- database.py: 100%
+- main.py: 83%
+- Overall: 93%
+
+## Project Components
+
+### database.py
+
+Handles all database operations:
+
+- Establishing connections to PostgreSQL
+- Initializing the database schema
+- Inserting CSV data
+- Full CRUD operations:
+  - Creating individual records
+  - Reading records (by ID or with filters)
+  - Updating records
+  - Deleting records
+
+### main.py
+
+Contains the FastAPI application and defines the API endpoints:
+
+- `/upload/` for uploading CSV files
+- `/records/` for retrieving all records
+- `/records/{id}` for retrieving, updating, or deleting a specific record
+- `/records/` (POST) for creating a new record
+
+### utils.py
+
+Provides utility functions:
+
+- Processing CSV files
+- Error handling
+
+## Development
+
+### Adding New Features
+
+1. Implement the feature
+2. Add appropriate tests
+3. Ensure all tests pass
+4. Update documentation
+
+### Modifying the Database Schema
+
+If you need to modify the database schema:
+
+1. Update the `initialize_db()` function in database.py
+2. Update the corresponding tests in test_database.py
+
+### Connecting to PostgreSQL
+
+The application uses environment variables to configure the PostgreSQL connection:
+
+- `PG_HOST`: PostgreSQL server hostname (default: localhost)
+- `PG_PORT`: PostgreSQL server port (default: 5432)
+- `PG_DATABASE`: PostgreSQL database name (default: postgres)
+- `PG_USER`: PostgreSQL username (default: postgres)
+- `PG_PASSWORD`: PostgreSQL password (default: postgres)
+
+You can set these environment variables before running the application, or use the default values.
